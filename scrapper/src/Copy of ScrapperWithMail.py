@@ -52,76 +52,7 @@ class Spider:
 #                print 'Failed to fetch data after 5 retry.'+url
 #                return None
 #        return None
-class item(object):
-    def __init__(self):
-        self.sku=''
-        self.itemUrl=''
-        self.itemName=''
-        self.price=0.0
-        self.specialPrice=0.0
-        self.priceRebate=0.0
-        self.dateRebate=''
-        self.BHprice=0.0
-        self.BHspecialPrice=0.0
-        self.BHpriceRebate=0.0
-        self.BHdateRebate=''
-        self.brand=''
-        self.importer=''
-        self.nikon=False
-        self.available=True
-        self.headerInfo=''
 
-
-class getMagentoInfo():
-    def __init__(self):
-        pass
-    def run(self,Item):
-        token = server.login(mg_username, mg_password)
-
-          
- 
-        if Item.mfr=='':
-            parms=[{'name':str(name)}]
-        else:
-            parms=[{'model':str(Item.mfr)}]
-        try: 
-            products = server.call(token, 'catalog_product.list',parms)
-            sku=''
-            for product in products:
-                sku = product['sku']
-        except Exception, x:
-            print " Exception dataItems"
-            print x
-            sku=None
- 
-        
-        if sku:
-            try:
-                info = server.call(token, 'catalog_product.info',[sku+" "])
-                magentoPrice= info['price']
-                magentoSpecialPrice= info['special_price']
-                magentoDateRebate=info['special_to_date']
-                magentoPriceRebate=info['instant_savings']
-                magentoSKU=info['sku']
-                magentoPriceSync=info['pricesync']
-                if magentoPriceSync!='1':
-                    return 0
-                magentoDateRebate=str(re.search(r'(\d{4}-\d[\d+-]*-\d[\d+-]*)',magentoDateRebate).group()) if magentoDateRebate else ''
-                magentoPriceRebate=float(magentoPriceRebate) if magentoPriceRebate else ''
-                magentoSpecialPrice=float(magentoSpecialPrice) if magentoSpecialPrice else ''
-                magentoPrice=float(magentoPrice) if magentoPrice else ''             
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
-        
-        
 class Main(threading.Thread):
     def __init__(self, url):
         self.spider = Spider()
@@ -144,40 +75,39 @@ class Main(threading.Thread):
     def scrapItem(self, url,pgn=1):
 
             
-        #print "Pagina "+str(pgn)
+        print "Pagina "+str(pgn)
         threading.Thread.__init__(self)
         tmp =url.split('/')
         urlIntern=mainUrl+'/c/buy/'+tmp[5]+'/ipp/100/ci/'+tmp[7]+'/pn/'+str(pgn)+'/N/'+tmp[9]
-        #print "URL "+ urlIntern
+        print "URL "+ urlIntern
         try:        
             headerInfo, itemPageRequest = self.spider.fetchData(urlIntern, self.referer)
         except Exception, x:
             return False
         itemPagesoup = BeautifulSoup(itemPageRequest)
         block=itemPagesoup.find_all("div", {"class": "productBlockCenter"})
-        for itemBlock in block:
-            Item=item()
-            itemurlinfo=itemBlock.find("div", {"id": "productTitle"})
-            Item.brand=itemBlock.find("div", {"class":"brandTop"})
-            mfrinfo=itemBlock.find("li", {"class":"singleBullet"})
-            Item.importer=itemBlock.find("div", {"id": "grayMarket"}).text
+        for item in block:
+            itemurlinfo=item.find("div", {"id": "productTitle"})
+            brand=item.find("div", {"class":"brandTop"})
+            mfrinfo=item.find("li", {"class":"singleBullet"})
+            importer=item.find("div", {"id": "grayMarket"}).text
             #Nikon=True if brand.text=="Nikon" and  tmp[5]=="Lenses" else False
-            #Nikon=True if brand.text=="Nikon" else False            
-            if  not re.search('imported',Item.importer, re.IGNORECASE):
+            Nikon=True if brand.text=="Nikon" else False            
+            if  not re.search('imported',importer, re.IGNORECASE):
                 if mfrinfo!=None:            
-                    Item.mfr= mfrinfo.find("span", {"class": "value"}).text
+                    mfr= mfrinfo.find("span", {"class": "value"}).text
                 else:
-                    Item.mfr='' 
-                Item.itemUrl=itemurlinfo.find('a')['href']
-                if Item.itemUrl:
-                    self.dataItems (Item)
+                    mfr='' 
+                itemurl=itemurlinfo.find('a')['href']
+                if itemurl:
+                    self.dataItems (itemurl,mfr,Nikon)
         if re.search('<a href="[^"]*" class="lnext">Next',itemPageRequest):
             return self.scrapItem(url, pgn + 1)
 
     
-    def dataItems(self,Item):
+    def dataItems(self,url,mfr,Nikon):
         try:
-            headerInfo, itemPageRequest = self.spider.fetchData(Item.itemUrl, self.referer)
+            headerInfo, itemPageRequest = self.spider.fetchData(url, self.referer)
         except Exception, x:
             return False
         #print headerInfo
@@ -213,6 +143,8 @@ class Main(threading.Thread):
             classaux=classaux.group().replace("\"",'')
             BHPrice=float(priceinfo.find("span", {"class":classaux}).text.strip().replace('$','').replace(',',''))
 
+        print "Url del producto " + url
+        print " Code  "+ code
             
 
                     
@@ -247,7 +179,37 @@ class Main(threading.Thread):
 #        else:
 #            price=special_price
 #            incar=incar+"WitoutShow"
-   
+ 
+        if mfr=='':
+            parms=[{'name':str(name)}]
+        else:
+            parms=[{'model':str(mfr)}]
+        try: 
+            products = server.call(token, 'catalog_product.list',parms)
+            sku=''
+            for product in products:
+                sku = product['sku']
+        except Exception, x:
+            print " Exception dataItems"
+            print x
+            sku=None
+ 
+        
+        if sku:
+            try:
+                info = server.call(token, 'catalog_product.info',[sku+" "])
+                magentoPrice= info['price']
+                magentoSpecialPrice= info['special_price']
+                magentoDateRebate=info['special_to_date']
+                magentoPriceRebate=info['instant_savings']
+                magentoSKU=info['sku']
+                magentoPriceSync=info['pricesync']
+                if magentoPriceSync!='1':
+                    return 0
+                magentoDateRebate=str(re.search(r'(\d{4}-\d[\d+-]*-\d[\d+-]*)',magentoDateRebate).group()) if magentoDateRebate else ''
+                magentoPriceRebate=float(magentoPriceRebate) if magentoPriceRebate else ''
+                magentoSpecialPrice=float(magentoSpecialPrice) if magentoSpecialPrice else ''
+                magentoPrice=float(magentoPrice) if magentoPrice else ''    
 
                 if BHTypeOfSell=="normal" and magentoPrice==BHPrice and (magentoSpecialPrice==None or magentoSpecialPrice=='' ):
                     return 0
@@ -321,9 +283,9 @@ if __name__ == "__main__":
     token = server.login(mg_username, mg_password)
     main = Main(mainUrl)
     
-    main.scrapCatSup('http://www.bhphotovideo.com/c/browse/Support-Equipment/ci/8310/N/4075788771')
-    #main.scrapItem('http://www.bhphotovideo.com/c/buy/Digital-Cameras/ci/9811/N/4288586282')
-    #main.scrapItem('http://www.bhphotovideo.com/c/buy/Lenses/ci/15492/N/4288584250')
+    #main.scrapCatSup('http://www.bhphotovideo.com/c/browse/Support-Equipment/ci/8310/N/4075788771')
+    main.scrapItem('http://www.bhphotovideo.com/c/buy/Digital-Cameras/ci/9811/N/4288586282')
+    main.scrapItem('http://www.bhphotovideo.com/c/buy/Lenses/ci/15492/N/4288584250')
 
     #sendMail=send_mail()
     #sendMail.send(updateArchive)

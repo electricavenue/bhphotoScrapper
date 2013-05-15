@@ -105,7 +105,7 @@ if __name__ == "__main__":
     config.read("config.ini")
     #tip="magento_test"
     tip="magento_live"
-    filename="2013-04-29_updates.csv"
+    filename="2013-05-14_updates.csv"
     infile = csv.reader(open(filename))
     output='output.csv'
     writer = csv.writer(open("output.csv", "wb"))
