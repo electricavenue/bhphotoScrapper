@@ -26,6 +26,6 @@ server = xmlrpclib.ServerProxy(mg_url)
 
 
 token = server.login(mg_username, mg_password)
-info = server.call(token, 'catalog_product.info',['085126340551 '])
-                                                    
+info = server.call(token, 'catalog_product.info',['031293019806 '])
+#print server.call(token, 'getManufacturerText','481')
 print info
